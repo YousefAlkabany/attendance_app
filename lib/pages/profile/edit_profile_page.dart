@@ -123,7 +123,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         return HomePage(userModel: userModel);
                       }));
                     } catch (e) {
-                      log(userModel.password!);
+                   
                       showSnackBarMessage(context, e.toString());
                     }
                   }

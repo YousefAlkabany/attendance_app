@@ -1,16 +1,21 @@
 import 'package:cattendanceapp/constants.dart';
+import 'package:cattendanceapp/helpers/functions.dart';
 import 'package:cattendanceapp/models/user_model.dart';
+import 'package:cattendanceapp/pages/login_page.dart';
 import 'package:cattendanceapp/pages/profile/about_us_page.dart';
 import 'package:cattendanceapp/pages/profile/change_password_page.dart';
 import 'package:cattendanceapp/pages/profile/edit_profile_page.dart';
 import 'package:cattendanceapp/pages/profile/privacy_policy_page.dart';
 import 'package:cattendanceapp/pages/profile/terms_and_conditions_page.dart';
+import 'package:cattendanceapp/services/user_service.dart';
 import 'package:cattendanceapp/utils/attendance_color.dart';
 import 'package:cattendanceapp/utils/attendance_fontstyle.dart';
 import 'package:cattendanceapp/utils/attendance_icons.dart';
 import 'package:cattendanceapp/widgets/custom_inkwell_button.dart';
 import 'package:cattendanceapp/widgets/inkwell_row_item.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -23,6 +28,16 @@ class _ProfilePageState extends State<ProfilePage> {
   dynamic size;
   double height = 0.00;
   double width = 0.00;
+
+  // function to delete the user
+
+  Future<void> deleteUser(String token, int userId) async {
+    await UserService(Dio()).deleteUser(token, userId);
+  }
+
+  Future<void> logOut() async {
+    await Get.offAll(const LoginPage());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +96,8 @@ class _ProfilePageState extends State<ProfilePage> {
               CustomInkwellButton(
                 text: 'Edit Profile',
                 onTap: () {
-                  Navigator.pushNamed(context, EditProfilePage.id , arguments: userModel);
+                  Navigator.pushNamed(context, EditProfilePage.id,
+                      arguments: userModel);
                 },
               ),
               SizedBox(
@@ -93,7 +109,14 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               InkwellRowItem(
                 onTap: () {
-                  Navigator.pushNamed(context, TermsAndConditionsPage.id);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) {
+                      return TermsAndConditionsPage(
+                        userModel: userModel,
+                      );
+                    }),
+                  );
                 },
                 text: 'Terms Conditions',
                 image: AttendancePngimage.terms,
@@ -104,7 +127,14 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               InkwellRowItem(
                 onTap: () {
-                  Navigator.pushNamed(context, PrivacyPolicyPage.id);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) {
+                      return PrivacyPolicyPage(
+                        userModel: userModel,
+                      );
+                    }),
+                  );
                 },
                 text: 'Privacy Policy',
                 image: AttendancePngimage.privacy,
@@ -115,7 +145,11 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               InkwellRowItem(
                 onTap: () {
-                  Navigator.pushNamed(context, AboutUsPage.id);
+                  Navigator.push(context, MaterialPageRoute(builder: (context) {
+                    return AboutUsPage(
+                      userModel: userModel,
+                    );
+                  }));
                 },
                 text: 'About Us',
                 image: AttendancePngimage.coffee,
@@ -126,7 +160,8 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               InkwellRowItem(
                 onTap: () {
-                  Navigator.pushNamed(context, ChangePasswordPage.id);
+                  Navigator.pushNamed(context, ChangePasswordPage.id,
+                      arguments: userModel);
                 },
                 text: 'Change Password',
                 image: AttendancePngimage.lock,
@@ -136,8 +171,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 height: height / 96,
               ),
               InkwellRowItem(
-                onTap: () {
-                  Navigator.pushNamed(context, ChangePasswordPage.id);
+                onTap: () async {
+                  // ensure that the user needs to delete the account
+                  onbackpressed(
+                    context,
+                    'Are you sure to delete this account ? 🗑️',
+                    () => deleteUser(userModel.token, userModel.id),
+                  );
                 },
                 text: 'Delete Account',
                 image: AttendancePngimage.profile,
@@ -149,7 +189,11 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               InkwellRowItem(
                 onTap: () {
-                  Navigator.pushNamed(context, ChangePasswordPage.id);
+                  onbackpressed(
+                    context,
+                    'Are you sure you want to log out ? 🧐',
+                    () => logOut(),
+                  );
                 },
                 text: 'Log Out',
                 image: AttendancePngimage.logout,

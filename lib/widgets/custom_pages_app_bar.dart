@@ -1,6 +1,6 @@
 import 'package:cattendanceapp/models/user_model.dart';
 import 'package:cattendanceapp/utils/attendance_color.dart';
-import 'package:cattendanceapp/utils/attendance_fontstyle.dart';
+
 import 'package:flutter/material.dart';
 
 AppBar customPagesAppBar(

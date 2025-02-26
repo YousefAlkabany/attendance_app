@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cattendanceapp/constants.dart';
 import 'package:cattendanceapp/helpers/functions.dart';
 import 'package:cattendanceapp/models/attendance_model.dart';
@@ -12,6 +14,7 @@ import 'package:cattendanceapp/widgets/custom_app_bar.dart';
 import 'package:cattendanceapp/widgets/custom_grid_button_container.dart';
 import 'package:cattendanceapp/widgets/custom_title.dart';
 import 'package:cattendanceapp/widgets/drop_box_container.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -44,6 +47,9 @@ class _HomePageState extends State<HomePage> {
   bool checkOutOnTap = false;
   int totalDaysCounter = 0;
   int totalSpaceCounter = 0;
+  bool isExpandedView = false;
+  CollectionReference activities =
+      FirebaseFirestore.instance.collection('activities');
 
   late ProgressDialog pr;
 
@@ -101,6 +107,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     getAreaList(widget.userModel!.token);
     _getCurrentLocation();
+
     super.initState();
   }
 
@@ -137,6 +144,11 @@ class _HomePageState extends State<HomePage> {
     size = MediaQuery.of(context).size;
     height = size.height;
     width = size.width;
+    int viewAllCounter = isExpandedView
+        ? attendanceList.length
+        : attendanceList.length >= 4
+            ? 4
+            : attendanceList.length;
     return Scaffold(
       key: _scaffoldKey,
       appBar: customAppBar(widget.userModel!, context),
@@ -176,7 +188,7 @@ class _HomePageState extends State<HomePage> {
                       checkInOnTap = true;
                       checkOutOnTap = false;
                       setState(() {});
-                      await saveAttendance(context, 'in');
+                      await saveAttendance(context, 'in', widget.userModel!);
                     },
                     time: timeIn,
                   ),
@@ -189,7 +201,7 @@ class _HomePageState extends State<HomePage> {
                       checkOutOnTap = true;
                       checkInOnTap = false;
                       setState(() {});
-                      await saveAttendance(context, 'out');
+                      await saveAttendance(context, 'out', widget.userModel!);
                     },
                     time: timeOut,
                   ),
@@ -208,93 +220,135 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(
                 height: 12,
               ),
-              const CustomTitle(title: 'Days Activity :'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const CustomTitle(title: 'Days Activity :'),
+                  if (attendanceList.isNotEmpty)
+                    attendanceList.length > 5
+                        ? GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                isExpandedView = !isExpandedView;
+                              });
+                            },
+                            child: Text(
+                              isExpandedView ? "View Less" : "View All",
+                              style: lsemiBold.copyWith(
+                                  fontSize: 14, color: Colors.teal),
+                            ),
+                          )
+                        : Text(
+                            "View All",
+                            style: lsemiBold.copyWith(
+                                fontSize: 14, color: Colors.grey),
+                          ),
+                ],
+              ),
               const SizedBox(
                 height: 12,
               ),
-              ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    return Container(
-                      width: width / 1,
-                      decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              spreadRadius: 3,
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                          borderRadius: BorderRadius.circular(10),
-                          color: AttendanceColor.white),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: width / 36, vertical: height / 56),
-                        child: Row(
-                          children: [
-                            Container(
-                              height: height / 20,
-                              width: height / 20,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: AttendanceColor.lightprimary,
+              StreamBuilder<QuerySnapshot>(
+                stream: activities.snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && attendanceList.isEmpty) {
+                    for (int i = 0; i < snapshot.data!.docs.length; i++) {
+                      if (snapshot.data!.docs[i]["id"] ==
+                          widget.userModel!.id) {
+                        attendanceList.add(
+                          AttendanceModel.fromJson(snapshot.data!.docs[i],
+                              image: snapshot.data!.docs[i]['image']),
+                        );
+                      }
+                    }
+                  }
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      return Container(
+                        width: width / 1,
+                        decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.3),
+                                spreadRadius: 3,
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Image.asset(
-                                  AttendancePngimage.terms,
-                                  height: height / 36,
-                                  color: AttendanceColor.primary,
+                            ],
+                            borderRadius: BorderRadius.circular(10),
+                            color: AttendanceColor.white),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: width / 36, vertical: height / 56),
+                          child: Row(
+                            children: [
+                              Container(
+                                height: height / 20,
+                                width: height / 20,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: AttendanceColor.lightprimary,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Image.asset(
+                                    '${attendanceList[index].image}',
+                                    height: height / 36,
+                                    color: AttendanceColor.primary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            SizedBox(
-                              width: width / 36,
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${attendanceList[index].query}',
-                                  style: lsemiBold.copyWith(fontSize: 14),
-                                ),
-                                Text(
-                                  '${attendanceList[index].date}',
-                                  style: lregular.copyWith(
-                                      fontSize: 12,
-                                      color: AttendanceColor.textgray),
-                                ),
-                              ],
-                            ),
-                            const Spacer(),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '${attendanceList[index].time}',
-                                  style: lsemiBold.copyWith(fontSize: 14),
-                                ),
-                                Text(
-                                  '${attendanceList[index].location}',
-                                  style: lregular.copyWith(
-                                      fontSize: 12,
-                                      color: AttendanceColor.textgray),
-                                ),
-                              ],
-                            )
-                          ],
+                              SizedBox(
+                                width: width / 36,
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${attendanceList[index].query}',
+                                    style: lsemiBold.copyWith(fontSize: 14),
+                                  ),
+                                  Text(
+                                    '${attendanceList[index].date}',
+                                    style: lregular.copyWith(
+                                        fontSize: 12,
+                                        color: AttendanceColor.textgray),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${attendanceList[index].time}',
+                                    style: lsemiBold.copyWith(fontSize: 14),
+                                  ),
+                                  Text(
+                                    '${attendanceList[index].location}',
+                                    style: lregular.copyWith(
+                                        fontSize: 12,
+                                        color: AttendanceColor.textgray),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  separatorBuilder: (context, index) {
-                    return SizedBox(
-                      height: height / 56,
-                    );
-                  },
-                  itemCount: attendanceList.length),
+                      );
+                    },
+                    separatorBuilder: (context, index) {
+                      return SizedBox(
+                        height: height / 56,
+                      );
+                    },
+                    itemCount: viewAllCounter,
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -304,7 +358,10 @@ class _HomePageState extends State<HomePage> {
 
   // function to save attendance and handle each message ;
 
-  Future<void> saveAttendance(BuildContext context, String q) async {
+  Future<void> saveAttendance(
+      BuildContext context, String q, UserModel userModel) async {
+    //take a firebase inistance
+
     try {
       Response response = await AttendanceSaveService(Dio()).saveAttendance(
           widget.userModel!.token,
@@ -317,16 +374,29 @@ class _HomePageState extends State<HomePage> {
       final data = response.data;
 
       if (data['message'] == 'Success!') {
-        setState(() {
-          attendanceModel = AttendanceModel.fromJson(data);
-          attendanceList.add(
-            AttendanceModel(
-                date: attendanceModel!.date,
-                time: attendanceModel!.time,
-                query: attendanceModel!.query,
-                location: attendanceModel!.location),
-          );
+        attendanceModel = AttendanceModel.fromJson(data);
+
+        // adding the data to fire cloud store
+
+        activities.add({
+          'id': userModel.id,
+          'date': attendanceModel!.date,
+          'time': attendanceModel!.time,
+          'query': attendanceModel!.query,
+          'location': attendanceModel!.location,
+          'image': q == 'in' ? kCheckInImage : kCheckOutImage,
         });
+
+        attendanceList.add(
+          AttendanceModel(
+            userId: userModel.id,
+            date: attendanceModel!.date,
+            time: attendanceModel!.time,
+            query: attendanceModel!.query,
+            location: attendanceModel!.location,
+            image: q == 'in' ? kCheckInImage : kCheckOutImage,
+          ),
+        );
 
         Future.delayed(Duration.zero).then((value) async {
           if (mounted) {
@@ -367,6 +437,11 @@ class _HomePageState extends State<HomePage> {
         if (q == 'in') {
           setState(() {
             timeIn = attendanceModel!.time!;
+            if (attendanceModel!.location == kAnotherSpace) {
+              totalSpaceCounter++;
+            } else {
+              totalDaysCounter++;
+            }
           });
         } else {
           setState(() {

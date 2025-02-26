@@ -19,7 +19,26 @@ class UserService {
       Response response = await dio.post(url, data: formData);
       return response;
     } on DioException catch (e) {
-      print(updatedData); 
+      print(updatedData);
+      throw Exception(e);
+    } catch (e) {
+      throw Exception('Something went wrong please try again later');
+    }
+  }
+
+  //delete user
+
+  Future<void> deleteUser(String token, int userId) async {
+    final String url = '$kAppUrlApi/users/$userId';
+    dio.options.headers = {
+      'Accept': 'application/json',
+      'Content-Type': 'multipart/form-data',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      Response response = await dio.delete(url);
+    } on DioException catch (e) {
       throw Exception(e);
     } catch (e) {
       throw Exception('Something went wrong please try again later');
