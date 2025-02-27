@@ -25,7 +25,8 @@ class _AllApplicationPageState extends State<AllApplicationPage> {
   Future<void> getApplications() async {
     try {
       applicationsList = await ApplicationService(Dio())
-          .getApplications(widget.userModel!.token);
+              .getApplications(widget.userModel!.token) ??
+          [];
       setState(() {});
     } catch (e) {
       showSnackBarMessage(context, e.toString());
@@ -203,7 +204,7 @@ class _AllApplicationPageState extends State<AllApplicationPage> {
               context,
               MaterialPageRoute(
                 builder: (context) {
-                  return ApplyApplicationPage(userModel : widget.userModel); 
+                  return ApplyApplicationPage(userModel: widget.userModel);
                 },
               ),
             );

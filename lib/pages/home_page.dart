@@ -50,7 +50,10 @@ class _HomePageState extends State<HomePage> {
   bool isExpandedView = false;
   CollectionReference activities =
       FirebaseFirestore.instance.collection('activities');
-
+  CollectionReference counters =
+      FirebaseFirestore.instance.collection('counters');
+  Map<String, dynamic> counterData = {};
+  bool isLoading = true;
   late ProgressDialog pr;
 
   late Position _currentPosition;
@@ -103,10 +106,27 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // function to return counter data for user
+  Future<void> fetchData() async {
+    DocumentSnapshot snapshot =
+        await counters.doc(widget.userModel!.id.toString()).get();
+    Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+
+    setState(() {
+      counterData = data;
+      isLoading = false;
+    });
+
+    totalDaysCounter = counterData['totalCounter'] as int;
+    totalSpaceCounter = counterData['spaceCounter'] as int;
+  }
+
   @override
   void initState() {
     getAreaList(widget.userModel!.token);
     _getCurrentLocation();
+
+    fetchData();
 
     super.initState();
   }
@@ -149,6 +169,7 @@ class _HomePageState extends State<HomePage> {
         : attendanceList.length >= 4
             ? 4
             : attendanceList.length;
+
     return Scaffold(
       key: _scaffoldKey,
       appBar: customAppBar(widget.userModel!, context),
@@ -170,6 +191,10 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(
                 height: 12,
               ),
+              if (isLoading)
+                const Center(
+                  child: CircularProgressIndicator(),
+                ),
               GridView(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -208,12 +233,12 @@ class _HomePageState extends State<HomePage> {
                   CustomGridButtonContainer(
                     image: AttendancePngimage.calendar,
                     title: 'Total Days',
-                    time: '$totalDaysCounter',
+                    time: '${counterData['totalCounter']}',
                   ),
                   CustomGridButtonContainer(
                     image: AttendancePngimage.calendar,
                     title: 'Space Days',
-                    time: '$totalSpaceCounter',
+                    time: '${counterData['spaceCounter']}',
                   ),
                 ],
               ),
@@ -439,9 +464,23 @@ class _HomePageState extends State<HomePage> {
             timeIn = attendanceModel!.time!;
             if (attendanceModel!.location == kAnotherSpace) {
               totalSpaceCounter++;
-            } else {
-              totalDaysCounter++;
+
+              counters
+                  .doc(
+                userModel.id.toString(),
+              )
+                  .update(
+                {'spaceCounter': totalSpaceCounter},
+              );
             }
+            totalDaysCounter++;
+            counters
+                .doc(
+              userModel.id.toString(),
+            )
+                .update(
+              {'totalCounter': totalDaysCounter},
+            );
           });
         } else {
           setState(() {

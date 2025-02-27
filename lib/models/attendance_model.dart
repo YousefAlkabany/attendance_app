@@ -4,7 +4,7 @@ class AttendanceModel {
   String? location;
   String? query;
   String? image;
-  int ?userId;
+  int? userId;
 
   AttendanceModel({
     this.userId,
@@ -13,7 +13,6 @@ class AttendanceModel {
     this.location,
     this.query,
     this.image,
-
   });
 
   factory AttendanceModel.fromJson(json, {image, userId}) {

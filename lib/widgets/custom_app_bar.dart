@@ -1,6 +1,7 @@
 import 'package:cattendanceapp/constants.dart';
 import 'package:cattendanceapp/models/user_model.dart';
 import 'package:cattendanceapp/pages/applications/all_application_page.dart';
+import 'package:cattendanceapp/pages/notification_page.dart';
 import 'package:cattendanceapp/pages/profile_page.dart';
 
 import 'package:flutter/material.dart';
@@ -39,7 +40,14 @@ AppBar customAppBar(UserModel userModel, BuildContext context) {
       Row(
         children: [
           InkWell(
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) {
+                  return  NotificationPage(userModel : userModel );
+                }),
+              );
+            },
             borderRadius: const BorderRadius.all(Radius.circular(30)),
             child: const Padding(
               padding: EdgeInsets.all(6.0),
